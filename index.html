@@ -240,24 +240,35 @@ footer{margin-top:36px;color:var(--muted);font-size:.85rem}
   function render(){
     const v = value();
     const img = $('qr-img'), dl = $('qr-download');
+    const disableDownload = () => { dl.setAttribute('aria-disabled','true'); dl.style.opacity = .5; dl.removeAttribute('href'); };
     if (!v.trim()){
       img.hidden = true; $('qr-empty').hidden = false;
-      dl.setAttribute('aria-disabled','true'); dl.style.opacity = .5; dl.removeAttribute('href');
+      $('qr-empty').textContent = 'Type something to see your code.';
+      disableDownload();
       return;
     }
+    if (typeof QRious === 'undefined'){
+      img.hidden = true; $('qr-empty').hidden = false;
+      $('qr-empty').textContent = 'The QR library didn’t load. Check your internet connection and reload the page.';
+      disableDownload();
+      return;
+    }
+    // `element` can only be given when QRious is created; passing it to set() throws.
     const opts = {
-      element: qrCanvas, value: v, size: +$('qr-size').value,
+      value: v, size: +$('qr-size').value,
       foreground: $('qr-fg').value, background: $('qr-bg').value,
       level: $('qr-level').value, padding: Math.round(+$('qr-size').value / 16)
     };
     try {
-      if (!qr) qr = new QRious(opts); else qr.set(opts);
+      if (!qr) qr = new QRious(Object.assign({ element: qrCanvas }, opts)); else qr.set(opts);
       const url = qrCanvas.toDataURL('image/png');
       img.src = url; img.hidden = false; $('qr-empty').hidden = true;
       dl.href = url; dl.removeAttribute('aria-disabled'); dl.style.opacity = 1;
     } catch (e){
+      console.error(e);
       img.hidden = true; $('qr-empty').hidden = false;
       $('qr-empty').textContent = 'That’s too much text for one QR code. Shorten it or lower the damage tolerance.';
+      disableDownload();
     }
   }
   ['qr-text','wifi-ssid','wifi-pass','wifi-sec','qr-fg','qr-bg','qr-size','qr-level']
